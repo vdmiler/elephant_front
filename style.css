@@ -1,0 +1,77 @@
+@font-face {
+  font-family: 'Glober';
+  src: url('/fonts/GloberLight.ttf');
+  font-weight: 300;
+  font-display: fallback;
+}
+
+@font-face {
+  font-family: 'Glober';
+  src: url('/fonts/GloberRegular.ttf');
+  font-weight: 400;
+  font-display: fallback;
+}
+
+@font-face {
+  font-family: 'Glober';
+  src: url('/fonts/GloberRegularItalic.ttf');
+  font-weight: 400;
+  font-style: italic;
+  font-display: fallback;
+}
+
+@font-face {
+  font-family: 'Glober';
+  src: url('/fonts/GloberSemiBold.ttf');
+  font-weight: 600;
+  font-display: fallback;
+}
+
+@font-face {
+  font-family: 'Glober';
+  src: url('/fonts/GloberBold.ttf');
+  font-weight: 700;
+  font-display: fallback;
+}
+
+@font-face {
+  font-family: 'Roboto';
+  src: url('/fonts/RobotoThin.ttf');
+  font-weight: 100;
+  font-display: fallback;
+}
+
+@font-face {
+  font-family: 'Roboto';
+  src: url('/fonts/RobotoLight.ttf');
+  font-weight: 300;
+  font-display: fallback;
+}
+
+@font-face {
+  font-family: 'Roboto';
+  src: url('/fonts/RobotoRegular.ttf');
+  font-weight: 400;
+  font-display: fallback;
+}
+
+@font-face {
+  font-family: 'Didot';
+  src: url('/fonts/DidotRegular.ttf');
+  font-weight: 400;
+  font-display: fallback;
+}
+
+@font-face {
+  font-family: 'Didot';
+  src: url('/fonts/DidotMedium.ttf');
+  font-weight: 600;
+  font-display: fallback;
+}
+
+@font-face {
+  font-family: 'Didot';
+  src: url('/fonts/DidotLTStd-Bold.ttf');
+  font-weight: 700;
+  font-display: fallback;
+}
