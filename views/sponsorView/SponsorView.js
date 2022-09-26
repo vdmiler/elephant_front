@@ -116,11 +116,8 @@ const SponsorView = () => {
   useEffect(() => {
     const fetchGetPosts = async () => {
       try {
-        const response = await Promise.all(
-          [
-            $api.get("/wp/v2/sponsors?per_page=100&page=1"),
-            $api.get("/wp/v2/sponsors?per_page=100&page=2"),
-          ],
+        const response = await $api.get(
+          "/wp/v2/sponsors/?filter[posts_per_page]=-1",
           {
             headers: {
               "Content-Type": "application/json",
@@ -130,7 +127,7 @@ const SponsorView = () => {
           }
         );
 
-        const posts = await [...response[0].data, response[1].data];
+        const posts = await response.data;
         setPostData(posts);
       } catch (err) {
         console.log(err);
@@ -220,8 +217,6 @@ const SponsorView = () => {
     newState[index].title.rendered = e.target.value;
     setCurrentGuests(newState);
   }
-
-  console.log(currentGuests);
 
   const filterGuestsByCount =
     currentGuests && currentGuests.filter((_, index) => index >= totalGuests);

@@ -1,5 +1,6 @@
 import styled from "styled-components";
 import Container from "@components/container/Container";
+import { useRouter } from "next/router";
 
 const StyledHeader = styled.header`
   padding: 60px 0 100px;
@@ -68,6 +69,7 @@ const OfferButton = styled.div`
 `;
 
 const ExtraHeader = () => {
+  const router = useRouter();
   return (
     <>
       <StyledHeader>
@@ -79,7 +81,15 @@ const ExtraHeader = () => {
               <OfferTitle>Welcome</OfferTitle>
               <OfferLogo></OfferLogo>
               <OfferButtons>
-                <OfferButton>Sponsorenlogin</OfferButton>
+                <OfferButton
+                  onClick={() =>
+                    router.push({
+                      pathname: "/login",
+                    })
+                  }
+                >
+                  Sponsorenlogin
+                </OfferButton>
                 <OfferButton>Gast Login</OfferButton>
                 <OfferButton>Onlineauktion</OfferButton>
               </OfferButtons>
