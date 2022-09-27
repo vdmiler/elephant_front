@@ -138,8 +138,6 @@ const SponsorView = () => {
 
   const sponsorsData = postData && postData.filter((item) => item.parent === 0);
 
-  console.log(sponsorsData);
-
   const [chosenSponsor, setChosenSponsor] = useState(
     sponsorsData && sponsorsData[0]?.slug
   );
@@ -148,10 +146,8 @@ const SponsorView = () => {
   const [totalGuests, setTotalGuests] = useState(0);
   const [sponsorEmail, setSponsorEmail] = useState("");
 
-  const [sponsorEmailValue, setSponsorEmailValue] = useState("");
-
-  const handleChangeSponsorEmailValue = (e) => {
-    setSponsorEmailValue(e.target.value);
+  const handleChangeSponsorEmail = (e) => {
+    setSponsorEmail(e.target.value);
   };
 
   useEffect(() => {
@@ -162,12 +158,10 @@ const SponsorView = () => {
     const guests =
       postData && postData.filter((item) => item.parent === sponsorId);
 
-    setSponsorEmail(currentSponsor && currentSponsor[0]?.sponsor_email);
+    setSponsorEmail(currentSponsor ? currentSponsor[0]?.sponsor_email : "");
 
     setCurrentGuests(guests);
     setTotalGuests(guests?.length);
-
-    setSponsorEmailValue("");
   }, [chosenSponsor]);
 
   const handleAddingGuest = (e) => {
@@ -197,16 +191,12 @@ const SponsorView = () => {
     setCurrentGuests(newState);
   };
 
-  const [guestsValues, setGuestsValues] = useState({
-    value: "",
-  });
+  const [guestsValues, setGuestsValues] = useState("");
 
   const debouncedGuestNames = useDebounce(changeGuestsNames, 500);
 
   const handleChangeGuestsValues = (e, id) => {
-    setGuestsValues({
-      [e.target.name]: e.target.value,
-    });
+    setGuestsValues({ [e.target.name]: e.target.value });
 
     debouncedGuestNames(e, id);
   };
@@ -225,13 +215,23 @@ const SponsorView = () => {
     return acc + +item.guest_price;
   }, 0);
 
+  const formatGuestsList =
+    currentGuests &&
+    currentGuests.map((item, index) => {
+      return `${index + 1}. Name: ${item.title.rendered}, selected menu: ${
+        item.guest_menu
+      }`;
+    });
+
+  console.log(formatGuestsList);
+
   const handleEditPosts = () => {
     const fetchEditPosts = async () => {
       try {
         const formData = new FormData();
         formData.append("contact_name", chosenSponsor);
         formData.append("contact_email", sponsorEmail);
-        formData.append("contact_message", "xxxxxxxxxxxx");
+        formData.append("contact_message", formatGuestsList);
 
         const response = await axios({
           method: "post",
@@ -300,8 +300,8 @@ const SponsorView = () => {
                         type='text'
                         placeholder='E-mail'
                         name='sponsorEmail'
-                        value={sponsorEmailValue || sponsorEmail}
-                        handleChange={handleChangeSponsorEmailValue}
+                        value={sponsorEmail}
+                        handleChange={handleChangeSponsorEmail}
                       />
                     </InputWrapper>
                     {currentGuests &&
@@ -311,7 +311,7 @@ const SponsorView = () => {
                             <Input
                               name={item.title.rendered}
                               placeholder={item.title.rendered}
-                              value={guestsValues.value}
+                              value={guestsValues.val}
                               handleChange={(e) =>
                                 handleChangeGuestsValues(e, item.id)
                               }
