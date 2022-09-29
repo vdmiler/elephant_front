@@ -8,7 +8,7 @@ import { formattingIncomingData } from "@utils/helpers/formattingIncomingData.he
 import { getStorageWithExpiry } from "@utils/helpers/setStorageWithExpiry.helpers";
 import useDebounce from "@utils/helpers/useDebounce.helpers";
 import axios from "axios";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 
 const Wrapper = styled.section`
@@ -113,6 +113,7 @@ const SponsorView = () => {
 
   const [postData, setPostData] = useState(null);
 
+  // Делаем запрос на сервер и получаем данные, тоесть список все постов, это и спонсоры и клиенты, отличие одних от других делается по ключу parent
   useEffect(() => {
     const fetchGetPosts = async () => {
       try {
@@ -135,47 +136,67 @@ const SponsorView = () => {
     fetchGetPosts();
   }, []);
 
+  //Отбираем только спонсоров, у них ключ parent = 0
   const sponsorsData =
     postData &&
     formattingIncomingData(postData).filter((item) => item.parent === 0);
 
+  //Это выбраный спонсор, когда в селекте делается выбор.
   const [chosenSponsor, setChosenSponsor] = useState(
     sponsorsData && sponsorsData[0]?.slug
   );
 
-  const [currentIncomingGuests, setCurrentIncomingGuests] = useState(null);
+  //Текущие гости которые относятся именно к этому стонсору
+  const currentIncomingGuests = useRef(null);
+  //Те же текущие гости, но которые должны изминяться в процесе редактирования полей и чекбоксов
   const [currentModifedGuests, setCurrentModifedGuests] = useState(null);
+  //Количество гостей, выводтся слева
   const [totalGuests, setTotalGuests] = useState(0);
+  //Почта выбранного спонсора
   const [sponsorEmail, setSponsorEmail] = useState("");
 
+  //Обработчик для поля с почтой выбраного спонсора
   const handleChangeSponsorEmail = (e) => {
     setSponsorEmail(e.target.value);
   };
 
+  //Эффект запускается при выборе спонсора в селекте
   useEffect(() => {
+    //Фильтруем массив по выбраному в селекте спонсору, и возвращаем новый массив с ним же
     const currentSponsor =
       sponsorsData &&
       sponsorsData.filter((item) => item.slug === chosenSponsor);
+    //Узнаем и получаем id текущего спонсора
     const sponsorId = currentSponsor && currentSponsor[0]?.id;
+    //Получаем массив гостей текущего спонсора, по айдишнику
     const guests =
       postData &&
       formattingIncomingData(postData).filter(
         (item) => item.parent === sponsorId
       );
 
+    //Ставим почту выбраного спонсора в нужное поле
     setSponsorEmail(currentSponsor ? currentSponsor[0]?.sponsor_email : "");
 
-    setCurrentIncomingGuests(guests);
+    //Закидываем массив текущих клиентов в переменную, для сохранения исходных данных.
+    currentIncomingGuests.current = guests;
+    //Закидываем массив текущих клиентов в переменную, для мутаций.
     setCurrentModifedGuests(guests);
+    //Закридваем общее количество гостей (цисло)
     setTotalGuests(guests?.length);
 
-    console.log("Update:");
+    console.log(
+      "Update:_______________________________________________________"
+    );
   }, [chosenSponsor]);
 
+  //Функция для добавления новых гостей, по клику на кнопку "weitere Gäste registrieren".
   const handleAddingGuest = (e) => {
     e.preventDefault();
     let maxInd = 0;
+    //Находим максимальный айдишник среди всех и кидаем его в переменную maxInd.
     currentModifedGuests.forEach((item) => (maxInd = Math.max(item.id)));
+    //Добавляем объект в массив
     let newState = [
       ...currentModifedGuests,
       {
@@ -189,26 +210,35 @@ const SponsorView = () => {
         parent: currentModifedGuests[0].parent,
       },
     ];
+    //Обновляем мутационный массив клиентов
     setCurrentModifedGuests(newState);
   };
 
+  //Обработчик выбраного меню
   const handleChangeMenu = (value, id) => {
+    //Получаем индекс, может это лишнее???)))
     const index = currentModifedGuests.map((item) => item.id).indexOf(id);
+    //Копируем объект
     let newState = [...currentModifedGuests];
+    //Меняем значение выбраного меню
     newState[index].guest_menu = value;
+    //Обновляем массив
     setCurrentModifedGuests(newState);
   };
 
   const [guestsValues, setGuestsValues] = useState("");
 
+  //Задержка для редактирования инпутов
   const debouncedGuestNames = useDebounce(changeGuestsNames, 500);
 
+  //Обработчик для изменения имени клиента
   const handleChangeGuestsValues = (e, id) => {
     setGuestsValues({ [e.target.name]: e.target.value });
 
     debouncedGuestNames(e, id);
   };
 
+  //Функция для изминеня имени
   function changeGuestsNames(e, id) {
     const index = currentModifedGuests.map((item) => item.id).indexOf(id);
     let newState = [...currentModifedGuests];
@@ -220,6 +250,7 @@ const SponsorView = () => {
     currentModifedGuests &&
     currentModifedGuests.filter((_, index) => index >= totalGuests);
 
+  //Сумма за кажного нового клиента - счетчик
   const total = filterGuestsByCount?.reduce((acc, item) => {
     return acc + +item.guest_price;
   }, 0);
@@ -261,14 +292,22 @@ const SponsorView = () => {
   };
 
   console.log("currentIncomingGuests: ");
-  console.log(currentIncomingGuests);
+  console.log(currentIncomingGuests.current);
   console.log("currentModifedGuests: ");
   console.log(currentModifedGuests);
 
+  /*
+  
+  Запросы на добавления и редактирования полей, и тут ощибка если я редактирую данные, 
+  а не добавляю новые поля они клонируются, тоесть получаются дубли.
+
+  */
   async function handleUpdateSponsor() {
-    for (let i = 0; i < currentIncomingGuests.length; i++) {
+    for (let i = 0; i < currentIncomingGuests.current.length; i++) {
       for (let j = 0; j < currentModifedGuests.length; j++) {
-        if (currentIncomingGuests[i].id === currentModifedGuests[j].id) {
+        if (
+          currentIncomingGuests.current[i].id === currentModifedGuests[j].id
+        ) {
           if (currentModifedGuests[j].id !== undefined) {
             try {
               const response = await axios({
