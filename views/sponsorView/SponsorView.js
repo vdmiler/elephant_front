@@ -168,6 +168,8 @@ const SponsorView = () => {
     setCurrentIncomingGuests(guests);
     setCurrentModifedGuests(guests);
     setTotalGuests(guests?.length);
+
+    console.log("Update:");
   }, [chosenSponsor]);
 
   const handleAddingGuest = (e) => {
@@ -225,7 +227,7 @@ const SponsorView = () => {
   const formatGuestsList =
     currentModifedGuests &&
     currentModifedGuests.map((item, index) => {
-      return `${index + 1}. Name: ${item.title.rendered}, selected menu: ${
+      return `${index + 1}. Name: ${item.title}, selected menu: ${
         item.guest_menu
       }`;
     });
@@ -258,7 +260,9 @@ const SponsorView = () => {
     handleUpdateSponsor();
   };
 
+  console.log("currentIncomingGuests: ");
   console.log(currentIncomingGuests);
+  console.log("currentModifedGuests: ");
   console.log(currentModifedGuests);
 
   async function handleUpdateSponsor() {
@@ -285,28 +289,24 @@ const SponsorView = () => {
           } else {
             return;
           }
-        } else if (currentIncomingGuests[i].id !== currentModifedGuests[j].id) {
-          if (currentModifedGuests[j].id !== undefined) {
-            delete currentModifedGuests[j].id;
-            try {
-              const response = await axios({
-                method: "POST",
-                url: API_URL + "/wp/v2/sponsors",
-                data: currentModifedGuests[j],
-                headers: {
-                  "Content-Type": "application/json",
-                  accept: "application/json",
-                  Authorization: `Bearer ${getStorageWithExpiry("token")}`,
-                },
-              });
-              const answer = response.data;
-              console.log(answer);
-            } catch (err) {
-              console.log(err);
-            }
-          }
         } else {
-          return;
+          delete currentModifedGuests[j].id;
+          try {
+            const response = await axios({
+              method: "POST",
+              url: API_URL + "/wp/v2/sponsors",
+              data: currentModifedGuests[j],
+              headers: {
+                "Content-Type": "application/json",
+                accept: "application/json",
+                Authorization: `Bearer ${getStorageWithExpiry("token")}`,
+              },
+            });
+            const answer = response.data;
+            console.log(answer);
+          } catch (err) {
+            console.log(err);
+          }
         }
       }
     }
