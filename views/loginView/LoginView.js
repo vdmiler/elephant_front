@@ -10,7 +10,6 @@ import {
   getStorageWithExpiry,
 } from "@utils/helpers/setStorageWithExpiry.helpers";
 import axios from "axios";
-import $api from "core";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
@@ -45,7 +44,7 @@ const LoginView = () => {
     const isToken = getStorageWithExpiry("token");
     if (isToken && isToken.length !== 0) {
       axios({
-        method: "post",
+        method: "POST",
         url: API_URL + "/jwt-auth/v1/token/validate",
         headers: {
           "Content-Type": "application/json",
@@ -94,8 +93,11 @@ const LoginView = () => {
     });
     setErrors(chechingErrors);
     if (Object.keys(chechingErrors).length === 0) {
-      $api
-        .post("/jwt-auth/v1/token", fieldsData)
+      axios({
+        method: "POST",
+        url: API_URL + "/jwt-auth/v1/token",
+        data: fieldsData,
+      })
         .then((res) => {
           if (res.data.token) {
             setStorageWithExpiry("token", res.data.token, 1000 * 60 * 60 * 24);

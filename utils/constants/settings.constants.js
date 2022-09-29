@@ -1,1 +1,1 @@
-export const API_URL = "http://localhost/elephant/wp-json";
+export const API_URL = "http://elephant.websters.ru/wp-json";

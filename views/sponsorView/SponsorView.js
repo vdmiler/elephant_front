@@ -4,10 +4,10 @@ import Entry from "@components/entry/Entry";
 import { Input, RadioButton, Select } from "@components/forms";
 import Layout from "@components/layout/Layout";
 import { API_URL } from "@utils/constants/settings.constants";
+import { formattingIncomingData } from "@utils/helpers/formattingIncomingData.helpers";
 import { getStorageWithExpiry } from "@utils/helpers/setStorageWithExpiry.helpers";
 import useDebounce from "@utils/helpers/useDebounce.helpers";
 import axios from "axios";
-import $api from "core";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 
@@ -116,16 +116,15 @@ const SponsorView = () => {
   useEffect(() => {
     const fetchGetPosts = async () => {
       try {
-        const response = await $api.get(
-          "/wp/v2/sponsors/?filter[posts_per_page]=-1",
-          {
-            headers: {
-              "Content-Type": "application/json",
-              accept: "application/json",
-              Authorization: `Bearer ${getStorageWithExpiry("token")}`,
-            },
-          }
-        );
+        const response = await axios({
+          method: "GET",
+          url: API_URL + "/wp/v2/sponsors/?filter[posts_per_page]=-1",
+          headers: {
+            "Content-Type": "application/json",
+            accept: "application/json",
+            Authorization: `Bearer ${getStorageWithExpiry("token")}`,
+          },
+        });
 
         const posts = await response.data;
         setPostData(posts);
@@ -136,13 +135,16 @@ const SponsorView = () => {
     fetchGetPosts();
   }, []);
 
-  const sponsorsData = postData && postData.filter((item) => item.parent === 0);
+  const sponsorsData =
+    postData &&
+    formattingIncomingData(postData).filter((item) => item.parent === 0);
 
   const [chosenSponsor, setChosenSponsor] = useState(
     sponsorsData && sponsorsData[0]?.slug
   );
 
-  const [currentGuests, setCurrentGuests] = useState(null);
+  const [currentIncomingGuests, setCurrentIncomingGuests] = useState(null);
+  const [currentModifedGuests, setCurrentModifedGuests] = useState(null);
   const [totalGuests, setTotalGuests] = useState(0);
   const [sponsorEmail, setSponsorEmail] = useState("");
 
@@ -156,39 +158,43 @@ const SponsorView = () => {
       sponsorsData.filter((item) => item.slug === chosenSponsor);
     const sponsorId = currentSponsor && currentSponsor[0]?.id;
     const guests =
-      postData && postData.filter((item) => item.parent === sponsorId);
+      postData &&
+      formattingIncomingData(postData).filter(
+        (item) => item.parent === sponsorId
+      );
 
     setSponsorEmail(currentSponsor ? currentSponsor[0]?.sponsor_email : "");
 
-    setCurrentGuests(guests);
+    setCurrentIncomingGuests(guests);
+    setCurrentModifedGuests(guests);
     setTotalGuests(guests?.length);
   }, [chosenSponsor]);
 
   const handleAddingGuest = (e) => {
     e.preventDefault();
     let maxInd = 0;
-    currentGuests.forEach((item) => (maxInd = Math.max(item.id)));
+    currentModifedGuests.forEach((item) => (maxInd = Math.max(item.id)));
     let newState = [
-      ...currentGuests,
+      ...currentModifedGuests,
       {
         id: maxInd + 1,
-        slug: `name-guest-${currentGuests?.length + 1}`,
-        title: {
-          rendered: `Name guest ${currentGuests?.length + 1}`,
-        },
+        slug: `name-guest-${currentModifedGuests?.length + 1}`,
+        title: `Name guest ${currentModifedGuests?.length + 1}`,
+        content: "",
         guest_menu: "meat",
         guest_price: "650",
-        status: "pending",
+        status: "publish",
+        parent: currentModifedGuests[0].parent,
       },
     ];
-    setCurrentGuests(newState);
+    setCurrentModifedGuests(newState);
   };
 
   const handleChangeMenu = (value, id) => {
-    const index = currentGuests.map((item) => item.id).indexOf(id);
-    let newState = [...currentGuests];
+    const index = currentModifedGuests.map((item) => item.id).indexOf(id);
+    let newState = [...currentModifedGuests];
     newState[index].guest_menu = value;
-    setCurrentGuests(newState);
+    setCurrentModifedGuests(newState);
   };
 
   const [guestsValues, setGuestsValues] = useState("");
@@ -202,36 +208,39 @@ const SponsorView = () => {
   };
 
   function changeGuestsNames(e, id) {
-    const index = currentGuests.map((item) => item.id).indexOf(id);
-    let newState = [...currentGuests];
-    newState[index].title.rendered = e.target.value;
-    setCurrentGuests(newState);
+    const index = currentModifedGuests.map((item) => item.id).indexOf(id);
+    let newState = [...currentModifedGuests];
+    newState[index].title = e.target.value;
+    setCurrentModifedGuests(newState);
   }
 
   const filterGuestsByCount =
-    currentGuests && currentGuests.filter((_, index) => index >= totalGuests);
+    currentModifedGuests &&
+    currentModifedGuests.filter((_, index) => index >= totalGuests);
 
   const total = filterGuestsByCount?.reduce((acc, item) => {
     return acc + +item.guest_price;
   }, 0);
 
   const formatGuestsList =
-    currentGuests &&
-    currentGuests.map((item, index) => {
+    currentModifedGuests &&
+    currentModifedGuests.map((item, index) => {
       return `${index + 1}. Name: ${item.title.rendered}, selected menu: ${
         item.guest_menu
       }`;
     });
 
-  console.log(formatGuestsList);
-
-  const handleEditPosts = () => {
+  const handleSendMail = () => {
+    /* 
     const fetchEditPosts = async () => {
       try {
         const formData = new FormData();
         formData.append("contact_name", chosenSponsor);
         formData.append("contact_email", sponsorEmail);
-        formData.append("contact_message", formatGuestsList);
+        formData.append(
+          "contact_message",
+          JSON.stringify(formatGuestsList, null, 4)
+        );
 
         const response = await axios({
           method: "post",
@@ -245,7 +254,63 @@ const SponsorView = () => {
       }
     };
     fetchEditPosts();
+    */
+    handleUpdateSponsor();
   };
+
+  console.log(currentIncomingGuests);
+  console.log(currentModifedGuests);
+
+  async function handleUpdateSponsor() {
+    for (let i = 0; i < currentIncomingGuests.length; i++) {
+      for (let j = 0; j < currentModifedGuests.length; j++) {
+        if (currentIncomingGuests[i].id === currentModifedGuests[j].id) {
+          if (currentModifedGuests[j].id !== undefined) {
+            try {
+              const response = await axios({
+                method: "PUT",
+                url: API_URL + `/wp/v2/sponsors/${currentModifedGuests[j].id}`,
+                data: currentModifedGuests[j],
+                headers: {
+                  "Content-Type": "application/json",
+                  accept: "application/json",
+                  Authorization: `Bearer ${getStorageWithExpiry("token")}`,
+                },
+              });
+              const answer = response.data;
+              console.log(answer);
+            } catch (err) {
+              console.log(err);
+            }
+          } else {
+            return;
+          }
+        } else if (currentIncomingGuests[i].id !== currentModifedGuests[j].id) {
+          if (currentModifedGuests[j].id !== undefined) {
+            delete currentModifedGuests[j].id;
+            try {
+              const response = await axios({
+                method: "POST",
+                url: API_URL + "/wp/v2/sponsors",
+                data: currentModifedGuests[j],
+                headers: {
+                  "Content-Type": "application/json",
+                  accept: "application/json",
+                  Authorization: `Bearer ${getStorageWithExpiry("token")}`,
+                },
+              });
+              const answer = response.data;
+              console.log(answer);
+            } catch (err) {
+              console.log(err);
+            }
+          }
+        } else {
+          return;
+        }
+      }
+    }
+  }
 
   return (
     <Layout>
@@ -290,7 +355,7 @@ const SponsorView = () => {
                     </InputWrapper>
                     {chosenSponsor && (
                       <CounterGuests>
-                        {currentGuests?.length} ({chosenSponsor})
+                        {currentModifedGuests?.length} ({chosenSponsor})
                       </CounterGuests>
                     )}
                   </LeftSide>
@@ -304,13 +369,13 @@ const SponsorView = () => {
                         handleChange={handleChangeSponsorEmail}
                       />
                     </InputWrapper>
-                    {currentGuests &&
-                      currentGuests.map((item, index) => (
+                    {currentModifedGuests &&
+                      currentModifedGuests.map((item, index) => (
                         <GuestContainer key={item.id + index}>
                           <GuestInputWrapp>
                             <Input
-                              name={item.title.rendered}
-                              placeholder={item.title.rendered}
+                              name={item.title}
+                              placeholder={item.title}
                               value={guestsValues.val}
                               handleChange={(e) =>
                                 handleChangeGuestsValues(e, item.id)
@@ -343,7 +408,7 @@ const SponsorView = () => {
                       <>
                         <MoreGuestsLink
                           onClick={(e) => handleAddingGuest(e)}
-                          disabled={currentGuests?.length > 7}
+                          disabled={currentModifedGuests?.length > 7}
                         >
                           weitere Gäste registrieren
                         </MoreGuestsLink>
@@ -351,7 +416,7 @@ const SponsorView = () => {
                           <TotalInfo>Total CHF {total}</TotalInfo>
                           <Button
                             content='Registrieren'
-                            onClick={handleEditPosts}
+                            onClick={handleSendMail}
                           />
                         </RegisterWrapper>
                       </>

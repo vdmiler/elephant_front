@@ -1,5 +1,6 @@
+import { API_URL } from "@utils/constants/settings.constants";
 import MajorView from "@views/majorView/MajorView";
-import $api from "core";
+import axios from "axios";
 
 const HomePage = (props) => {
   return (
@@ -12,7 +13,9 @@ const HomePage = (props) => {
 export async function getServerSideProps() {
   let posts = null;
   try {
-    const allData = await Promise.all([$api.get("/wp/v2/posts")]);
+    const allData = await Promise.all([
+      axios({ method: "GET", url: API_URL + "/wp/v2/posts" }),
+    ]);
     posts = await allData[0].data;
   } catch (err) {
     console.error(err);
